@@ -1,0 +1,8 @@
+{
+    "name": "petal",
+    "license": "MIT",
+    "description": "lib wrapper love2d & html5",
+    "version": "0.1.0",
+    "classPath": "lib/",
+    "contributors": ["pkhead"]
+}
