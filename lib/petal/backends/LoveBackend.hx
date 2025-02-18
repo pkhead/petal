@@ -1,8 +1,33 @@
 package petal.backends;
-import petal.backends.Backend.GfxImPrimTopology;
+import petal.util.ByteData;
+import petal.gfx.Mesh;
+import petal.backends.Backend;
 import love.keyboard.KeyConstant;
 import love.keyboard.Scancode;
+
 import love.Love;
+import love.graphics.GraphicsModule;
+import love.mouse.MouseModule;
+
+@:luaRequire("ffi")
+extern class LuaJitFfi {
+    @:native("new")
+    public static function _new(ctype:String, args:haxe.extern.Rest<Dynamic>):Dynamic;
+
+    @:native("cast")
+    public static function _cast(ct:String, init:Dynamic):Dynamic;
+
+    public static function abi(param:String):Bool;
+
+    @:overload(function(dst:Dynamic, str:Dynamic):Void {})
+    public static function copy(dst:Dynamic, src:Dynamic, len:Int):Void;
+}
+
+typedef MeshImpl = {
+    mesh:love.graphics.Mesh,
+    indexType:IndexDataType,
+    vtxSize:Int
+};
 
 class LoveBackend implements Backend {
     var keyMap:Map<KeyConstant, KeyCode> = [];
@@ -80,23 +105,23 @@ class LoveBackend implements Backend {
             {love:KeyConstant.Caret, petal:KeyCode.Caret},
             {love:KeyConstant.Underscore, petal:KeyCode.Underscore},
             {love:KeyConstant.GraveAccent, petal:KeyCode.GraveAccent},
-            {love:KeyConstant.Kp0, petal:KeyCode.Kp0},
-            {love:KeyConstant.Kp1, petal:KeyCode.Kp1},
-            {love:KeyConstant.Kp2, petal:KeyCode.Kp2},
-            {love:KeyConstant.Kp3, petal:KeyCode.Kp3},
-            {love:KeyConstant.Kp4, petal:KeyCode.Kp4},
-            {love:KeyConstant.Kp5, petal:KeyCode.Kp5},
-            {love:KeyConstant.Kp6, petal:KeyCode.Kp6},
-            {love:KeyConstant.Kp7, petal:KeyCode.Kp7},
-            {love:KeyConstant.Kp8, petal:KeyCode.Kp8},
-            {love:KeyConstant.Kp9, petal:KeyCode.Kp9},
-            {love:KeyConstant.KpPeriod, petal:KeyCode.KpPeriod},
-            {love:KeyConstant.KpDivision, petal:KeyCode.KpDivision},
-            {love:KeyConstant.KpMultiply, petal:KeyCode.KpMultiply},
-            {love:KeyConstant.KpMinus, petal:KeyCode.KpMinus},
-            {love:KeyConstant.KpPlus, petal:KeyCode.KpPlus},
-            {love:KeyConstant.KpEnter, petal:KeyCode.KpEnter},
-            {love:KeyConstant.KpEquals, petal:KeyCode.KpEquals},
+            {love:KeyConstant.Kp0, petal:KeyCode.Keypad0},
+            {love:KeyConstant.Kp1, petal:KeyCode.Keypad1},
+            {love:KeyConstant.Kp2, petal:KeyCode.Keypad2},
+            {love:KeyConstant.Kp3, petal:KeyCode.Keypad3},
+            {love:KeyConstant.Kp4, petal:KeyCode.Keypad4},
+            {love:KeyConstant.Kp5, petal:KeyCode.Keypad5},
+            {love:KeyConstant.Kp6, petal:KeyCode.Keypad6},
+            {love:KeyConstant.Kp7, petal:KeyCode.Keypad7},
+            {love:KeyConstant.Kp8, petal:KeyCode.Keypad8},
+            {love:KeyConstant.Kp9, petal:KeyCode.Keypad9},
+            {love:KeyConstant.KpPeriod, petal:KeyCode.KeypadPeriod},
+            {love:KeyConstant.KpDivision, petal:KeyCode.KeypadDivision},
+            {love:KeyConstant.KpMultiply, petal:KeyCode.KeypadMultiply},
+            {love:KeyConstant.KpMinus, petal:KeyCode.KeypadMinus},
+            {love:KeyConstant.KpPlus, petal:KeyCode.KeypadPlus},
+            {love:KeyConstant.KpEnter, petal:KeyCode.KeypadEnter},
+            {love:KeyConstant.KpEquals, petal:KeyCode.KeypadEquals},
             {love:KeyConstant.Up, petal:KeyCode.Up},
             {love:KeyConstant.Down, petal:KeyCode.Down},
             {love:KeyConstant.Right, petal:KeyCode.Right},
@@ -128,38 +153,23 @@ class LoveBackend implements Backend {
             {love:KeyConstant.F15, petal:KeyCode.F15},
             {love:KeyConstant.NumLock, petal:KeyCode.NumLock},
             {love:KeyConstant.CapsLock, petal:KeyCode.CapsLock},
-            {love:KeyConstant.ScrolLock, petal:KeyCode.ScrolLock},
+            {love:KeyConstant.ScrollLock, petal:KeyCode.ScrollLock},
             {love:KeyConstant.RShift, petal:KeyCode.RShift},
             {love:KeyConstant.LShift, petal:KeyCode.LShift},
             {love:KeyConstant.RCtrl, petal:KeyCode.RCtrl},
             {love:KeyConstant.LCtrl, petal:KeyCode.LCtrl},
             {love:KeyConstant.RAlt, petal:KeyCode.RAlt},
             {love:KeyConstant.LAlt, petal:KeyCode.LAlt},
-            {love:KeyConstant.RMeta, petal:KeyCode.RMeta},
-            {love:KeyConstant.LMeta, petal:KeyCode.LMeta},
-            {love:KeyConstant.LSuper, petal:KeyCode.LSuper},
-            {love:KeyConstant.RSuper, petal:KeyCode.RSuper},
+            {love:KeyConstant.LGui, petal:KeyCode.LSuper},
+            {love:KeyConstant.RGui, petal:KeyCode.RSuper},
             {love:KeyConstant.Mode, petal:KeyCode.Mode},
-            {love:KeyConstant.Compose, petal:KeyCode.Compose},
             {love:KeyConstant.Pause, petal:KeyCode.Pause},
             {love:KeyConstant.Escape, petal:KeyCode.Escape},
             {love:KeyConstant.Help, petal:KeyCode.Help},
-            {love:KeyConstant.Print, petal:KeyCode.Print},
+            {love:KeyConstant.PrintScreen, petal:KeyCode.PrintScreen},
             {love:KeyConstant.SysReq, petal:KeyCode.SysReq},
-            {love:KeyConstant.Break, petal:KeyCode.Break},
             {love:KeyConstant.Menu, petal:KeyCode.Menu},
             {love:KeyConstant.Power, petal:KeyCode.Power},
-            {love:KeyConstant.Euro, petal:KeyCode.Euro},
-            {love:KeyConstant.Undo, petal:KeyCode.Undo},
-            {love:KeyConstant.WWW, petal:KeyCode.WWW},
-            {love:KeyConstant.Mail, petal:KeyCode.Mail},
-            {love:KeyConstant.Calculator, petal:KeyCode.Calculator},
-            {love:KeyConstant.AppSearch, petal:KeyCode.AppSearch},
-            {love:KeyConstant.AppHome, petal:KeyCode.AppHome},
-            {love:KeyConstant.AppBack, petal:KeyCode.AppBack},
-            {love:KeyConstant.AppForward, petal:KeyCode.AppForward},
-            {love:KeyConstant.AppRefresh, petal:KeyCode.AppRefresh},
-            {love:KeyConstant.AppBookmarks, petal:KeyCode.AppBookmarks},
         ];
 
         for (v in arr) {
@@ -169,9 +179,9 @@ class LoveBackend implements Backend {
 
     @:access(petal.App)
     public function initApp(app:App) {
-        var canvas = love.Graphics.newCanvas();
-        love.Graphics.setLineStyle(Rough);
-        love.Graphics.setLineJoin(None);
+        var canvas = GraphicsModule.newCanvas();
+        GraphicsModule.setLineStyle(Rough);
+        GraphicsModule.setLineJoin(None);
 
         Love.load = (args:lua.Table<Dynamic, Dynamic>, unfilteredArgs:lua.Table<Dynamic, Dynamic>) -> {
             
@@ -179,7 +189,7 @@ class LoveBackend implements Backend {
 
         Love.resize = (newW:Float, newH:Float) -> {
             canvas.release();
-            canvas = love.Graphics.newCanvas();
+            canvas = GraphicsModule.newCanvas();
         };
 
         Love.keypressed = (keycode:KeyConstant, scancode:Scancode, isRepeat:Bool) -> {
@@ -200,48 +210,52 @@ class LoveBackend implements Backend {
         };
 
         Love.update = (dt:Float) -> {
-            app.mouseX = love.Mouse.getX();
-            app.mouseY = love.Mouse.getY();
+            app.mouseX = MouseModule.getX();
+            app.mouseY = MouseModule.getY();
 
-            love.Graphics.origin();
-            love.Graphics.setCanvas(canvas);
+            GraphicsModule.origin();
+            GraphicsModule.setCanvas(canvas);
             app.update(dt);
-            love.Graphics.setCanvas();
+            GraphicsModule.setCanvas();
 
             app.keysPressed.resize(0);
             app.keysReleased.resize(0);
         }
 
         Love.draw = () -> {
-            love.Graphics.draw(canvas, 0.0, 0.0);
+            GraphicsModule.draw(canvas, 0.0, 0.0);
         }
     }
 
     public function gfxClear(r:Float, g:Float, b:Float, a:Float) {
-        love.Graphics.clear(r, g, b, a);
+        GraphicsModule.clear(r, g, b, a);
     }
     
     public function gfxImSetColor(r:Float, g:Float, b:Float, a:Float):Void {
-        love.Graphics.setColor(r, g, b, a);
+        GraphicsModule.setColor(r, g, b, a);
     }
 
     public function gfxImSetLineWidth(lw:Float):Void {
-        love.Graphics.setLineWidth(lw);
+        GraphicsModule.setLineWidth(lw);
     }
 
     public function gfxImRectFill(x:Float, y:Float, w:Float, h:Float):Void {
-        love.Graphics.rectangle(Fill, x, y, w, h);
+        GraphicsModule.rectangle(Fill, x, y, w, h);
     }
 
     public function gfxImRectLines(x:Float, y:Float, w:Float, h:Float):Void {
-        love.Graphics.rectangle(Line, x, y, w, h);
+        GraphicsModule.rectangle(Line, x, y, w, h);
+    }
+
+    public function gfxImLine(x0:Float, y0:Float, x1:Float, y1:Float):Void {
+        GraphicsModule.line(x0, y0, x1, y1);
     }
 
     var vtxTable:lua.Table<Int, Float> = lua.Table.create();
     var vtxTableIndex = 0;
-    var imPrimTopology:GfxImPrimTopology;
+    var imPrimTopology:PrimitiveTopology;
 
-    public function gfxImBegin(mode:GfxImPrimTopology):Void {
+    public function gfxImBegin(mode:PrimitiveTopology):Void {
         untyped __lua__("for k, v in pairs({0}) do {0}[k] = nil end", vtxTable);
 
         vtxTableIndex = 0;
@@ -249,8 +263,8 @@ class LoveBackend implements Backend {
     }
 
     public function gfxImEnd():Void {
-        if (imPrimTopology == GfxImPrimTopology.Lines) {
-            love.Graphics.line(vtxTable);
+        if (imPrimTopology == PrimitiveTopology.Lines) {
+            GraphicsModule.line(vtxTable);
         }
     }
 
@@ -262,17 +276,107 @@ class LoveBackend implements Backend {
         switch (imPrimTopology) {
             case Triangles:
                 if (vtxTableIndex >= 3*2) {
-                    love.Graphics.polygon(Fill, vtxTable);
+                    GraphicsModule.polygon(Fill, vtxTable);
                     vtxTableIndex = 0;
                 }
 
             case Quads:
                 if (vtxTableIndex >= 4*2) {
-                    love.Graphics.polygon(Fill, vtxTable);
+                    GraphicsModule.polygon(Fill, vtxTable);
                     vtxTableIndex = 0;
                 }
 
             case Lines:
         }
+    }
+
+    public function gfxFramebufferNew(width:Int, height:Int, readable:Bool):InternalFramebuffer {
+        var settings = lua.Table.create();
+        settings.readable = readable;
+        return GraphicsModule.newCanvas(width, height, settings);
+    }
+    
+    public function gfxFramebufferDispose(fb:InternalFramebuffer):Void {
+        cast(fb, love.graphics.Canvas).release();
+    }
+
+    public function gfxSetFramebuffer(fb:InternalFramebuffer):Void {
+        GraphicsModule.setCanvas(fb);
+    }
+
+    public function gfxMeshNew(format:Array<VertexAttributeDescription>, vertexCount:Int, indexed:Bool, indexType:IndexDataType, usage:BufferUsage):MeshImpl {
+        var tf:lua.Table<Int, lua.Table<Int, Dynamic>> = lua.Table.create();
+        var i = 1;
+        var vtxSize = 0;
+
+        for (f in format) {
+            var item:lua.Table<Int, Dynamic> = lua.Table.create();
+            item[1] = switch (f.name) {
+                case AttributeName.Position: "VertexPosition";
+                case AttributeName.Normal: "VertexNormal";
+                case AttributeName.Tangent: "VertexTangent";
+                case AttributeName.Bitangent: "VertexBitangent";
+                case AttributeName.Color0: "VertexColor";
+                case AttributeName.Color1: "VertexColor1";
+                case AttributeName.Color2: "VertexColor2";
+                case AttributeName.Color3: "VertexColor3";
+                case AttributeName.Indices: "VertexIndices";
+                case AttributeName.Weight: "VertexWeight";
+                case AttributeName.TexCoord0: "VertexTexCoord";
+                case AttributeName.TexCoord1: "VertexTexCoord1";
+                case AttributeName.TexCoord2: "VertexTexCoord2";
+                case AttributeName.TexCoord3: "VertexTexCoord3";
+                case AttributeName.TexCoord4: "VertexTexCoord4";
+                case AttributeName.TexCoord5: "VertexTexCoord5";
+                case AttributeName.TexCoord6: "VertexTexCoord6";
+                case AttributeName.TexCoord7: "VertexTexCoord7";
+            };
+
+            item[2] = switch (f.type) {
+                case Float: 
+                    vtxSize += f.size * 4;
+                    "float";
+                case Byte: 
+                    vtxSize = f.size;
+                    "byte";
+            };
+
+            item[3] = f.size;
+
+            tf[i++] = item;
+        }
+
+        return {
+            mesh: GraphicsModule.newMesh(tf, vertexCount, Triangles, Dynamic),
+            vtxSize: vtxSize,
+            indexType:indexType
+        };
+    }
+
+    public function gfxMeshDispose(mesh:InternalMesh):Void {
+        (mesh : MeshImpl).mesh.release();
+    }
+    
+    public function gfxMeshUploadVertices(mesh:InternalMesh, data:ByteData, startVertex:Int, vertexCount:Int):Void {
+        var meshImpl = (mesh : MeshImpl);
+        
+        // for some reason there's no overload for setVertices(ByteData, int, int|"all")?
+        // meshImpl.mesh.setVertices(data.loveData, startVertex, vertexCount);
+        untyped __lua__("{0}:setVertices({1}, {2}, {3})", meshImpl.mesh, data.loveData, startVertex + 1, vertexCount);
+    }
+
+    public function gfxMeshUploadIndices(mesh:InternalMesh, data:ByteData):Void {
+        var meshImpl = (mesh : MeshImpl);
+
+        var type = switch (meshImpl.indexType) {
+            case UInt16: love.graphics.IndexDataType.Uint16;
+            case UInt32: love.graphics.IndexDataType.Uint32;
+        };
+        meshImpl.mesh.setVertexMap(data.loveData, type);
+    }
+
+    public function gfxMeshDraw(mesh:InternalMesh):Void {
+        var meshImpl = (mesh : MeshImpl);
+        GraphicsModule.draw(meshImpl.mesh, 0, 0);
     }
 }

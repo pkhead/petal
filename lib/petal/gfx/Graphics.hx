@@ -28,8 +28,12 @@ class Graphics {
         backend.gfxImRectLines(x, y, w, h);
     }
 
+    inline public function drawLine(x0:Float, y0:Float, x1:Float, y1:Float) {
+        backend.gfxImLine(x0, y0, x1, y1);
+    }
+
     public function fillCircle(x:Float, y:Float, r:Float, segments:Int = 24) {
-        backend.gfxImBegin(GfxImPrimTopology.Triangles);
+        backend.gfxImBegin(PrimitiveTopology.Triangles);
 
         var lastC = 1.0;
         var lastS = 0.0;
