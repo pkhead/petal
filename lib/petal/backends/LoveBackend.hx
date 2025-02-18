@@ -303,7 +303,7 @@ class LoveBackend implements Backend {
         GraphicsModule.setCanvas(fb);
     }
 
-    public function gfxMeshNew(format:Array<VertexAttributeDescription>, vertexCount:Int, indexed:Bool, indexType:IndexDataType, mode:DrawMode, usage:BufferUsage):MeshImpl {
+    public function gfxMeshNew(format:Array<VertexAttributeDescription>, vertexCount:Int, indexed:Bool, indexType:IndexDataType, mode:MeshDrawMode, usage:BufferUsage):MeshImpl {
         var tf:lua.Table<Int, lua.Table<Int, Dynamic>> = lua.Table.create();
         var i = 1;
         var vtxSize = 0;
@@ -311,24 +311,24 @@ class LoveBackend implements Backend {
         for (f in format) {
             var item:lua.Table<Int, Dynamic> = lua.Table.create();
             item[1] = switch (f.name) {
-                case AttributeName.Position: "VertexPosition";
-                case AttributeName.Normal: "VertexNormal";
-                case AttributeName.Tangent: "VertexTangent";
-                case AttributeName.Bitangent: "VertexBitangent";
-                case AttributeName.Color0: "VertexColor";
-                case AttributeName.Color1: "VertexColor1";
-                case AttributeName.Color2: "VertexColor2";
-                case AttributeName.Color3: "VertexColor3";
-                case AttributeName.Indices: "VertexIndices";
-                case AttributeName.Weight: "VertexWeight";
-                case AttributeName.TexCoord0: "VertexTexCoord";
-                case AttributeName.TexCoord1: "VertexTexCoord1";
-                case AttributeName.TexCoord2: "VertexTexCoord2";
-                case AttributeName.TexCoord3: "VertexTexCoord3";
-                case AttributeName.TexCoord4: "VertexTexCoord4";
-                case AttributeName.TexCoord5: "VertexTexCoord5";
-                case AttributeName.TexCoord6: "VertexTexCoord6";
-                case AttributeName.TexCoord7: "VertexTexCoord7";
+                case MeshAttributeName.Position: "VertexPosition";
+                case MeshAttributeName.Normal: "VertexNormal";
+                case MeshAttributeName.Tangent: "VertexTangent";
+                case MeshAttributeName.Bitangent: "VertexBitangent";
+                case MeshAttributeName.Color0: "VertexColor";
+                case MeshAttributeName.Color1: "VertexColor1";
+                case MeshAttributeName.Color2: "VertexColor2";
+                case MeshAttributeName.Color3: "VertexColor3";
+                case MeshAttributeName.Indices: "VertexIndices";
+                case MeshAttributeName.Weight: "VertexWeight";
+                case MeshAttributeName.TexCoord0: "VertexTexCoord";
+                case MeshAttributeName.TexCoord1: "VertexTexCoord1";
+                case MeshAttributeName.TexCoord2: "VertexTexCoord2";
+                case MeshAttributeName.TexCoord3: "VertexTexCoord3";
+                case MeshAttributeName.TexCoord4: "VertexTexCoord4";
+                case MeshAttributeName.TexCoord5: "VertexTexCoord5";
+                case MeshAttributeName.TexCoord6: "VertexTexCoord6";
+                case MeshAttributeName.TexCoord7: "VertexTexCoord7";
             };
 
             item[2] = switch (f.type) {

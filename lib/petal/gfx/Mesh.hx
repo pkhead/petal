@@ -8,7 +8,7 @@ import petal.util.ByteData;
 /**
  * Describes the role of a vertex attribute.
  */
-enum AttributeName
+enum MeshAttributeName
 {
     Position;
     Normal;
@@ -33,7 +33,7 @@ enum AttributeName
 /**
  * Describes the primitive data type of each component of a vertex attribute.
  */
-enum AttributeType {
+enum MeshAttributeType {
     Float;
     Byte;
 }
@@ -69,7 +69,7 @@ enum BufferUsage {
 /**
  * How the vertex data in a mesh is interpreted when drawing.
  */
-enum DrawMode {
+enum MeshDrawMode {
     /**
      * The vertices create unconnected triangles.
      */
@@ -97,8 +97,8 @@ enum DrawMode {
  * Description of a vertex attribute. Each attribute has `size` components of type `type`. `name` describes the role of the åttribute.
  */
 typedef VertexAttributeDescription = {
-    name:AttributeName,
-    type:AttributeType,
+    name:MeshAttributeName,
+    type:MeshAttributeType,
     size:Int
 }
 
@@ -151,7 +151,7 @@ class Mesh {
      * @param indexType The primitive type of each element in the index buffer. Null if the mesh is not indexed.
      * @param usage The expected frequency of mesh data updates. It affects the mesh's memory usage and performance.
      */
-    public function new(format:Array<VertexAttributeDescription>, vertexCount:Int, indexType:Null<IndexDataType>, mode:DrawMode, usage:BufferUsage) {
+    public function new(format:Array<VertexAttributeDescription>, vertexCount:Int, indexType:Null<IndexDataType>, mode:MeshDrawMode, usage:BufferUsage) {
         var backend = @:privateAccess Graphics.instance.backend;
         internal = backend.gfxMeshNew(format, vertexCount, indexType != null, indexType ?? UInt16, mode, usage);
 
@@ -166,7 +166,7 @@ class Mesh {
      * @param indexType The primitive type of each element in the index buffer. Null if the mesh is not indexed.
      * @param usage The expected frequency of mesh data updates. It affects the mesh's memory usage and performance.
      */
-    public static function createStandard(vertexCount:Int, indexType:Null<IndexDataType>, mode:DrawMode, usage:BufferUsage) {
+    public static function createStandard(vertexCount:Int, indexType:Null<IndexDataType>, mode:MeshDrawMode, usage:BufferUsage) {
         return new Mesh(stdFormat, vertexCount, indexType, mode, usage);
     }
 
@@ -175,7 +175,7 @@ class Mesh {
      * @param vertices The vertex data the mesh will be initialized with.
      * @param usage The expected frequency of mesh data updates. It affects the mesh's memory usage and performance.
      */
-    public static function createFromArray(vertices:Array<Vertex>, mode:DrawMode, usage:BufferUsage) {
+    public static function createFromArray(vertices:Array<Vertex>, mode:MeshDrawMode, usage:BufferUsage) {
         var mesh = new Mesh(stdFormat, vertices.length, null, mode, usage);
         mesh.uploadVertices(vertices);
 
@@ -189,7 +189,7 @@ class Mesh {
      * @param indexDataType The primtive type of each element in the index buffer.
      * @param usage The expected frequency of mesh data updates. It affects the mesh's memory usage and performance.
      */
-     public static function createIndexedFromArray(vertices:Array<Vertex>, indices:Array<Int>, indexDataType:IndexDataType, mode:DrawMode, usage:BufferUsage) {
+     public static function createIndexedFromArray(vertices:Array<Vertex>, indices:Array<Int>, indexDataType:IndexDataType, mode:MeshDrawMode, usage:BufferUsage) {
         var mesh = new Mesh(stdFormat, vertices.length, indexDataType, mode, usage);
         mesh.uploadVertices(vertices);
         mesh.uploadIndices(indices);
@@ -295,5 +295,18 @@ class Mesh {
 
         var backend = @:privateAccess Graphics.instance.backend;
         backend.gfxMeshDraw(internal);
+    }
+
+    /**
+     * Immediately dispose internal resources used by the Mesh.
+     * @returns False if the object had already been disposed, true otherwise.
+     */
+    public function dispose() {
+        if (internal == null) return false;
+
+        var backend = @:privateAccess Graphics.instance.backend;
+        backend.gfxMeshDispose(internal);
+        internal = null;
+        return true;
     }
 }

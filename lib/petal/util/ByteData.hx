@@ -16,8 +16,8 @@ class ByteData {
     static var temp_u16 = LuaJitFfi._cast("uint16_t*", temp_u8);
     static var temp_i32 = LuaJitFfi._cast("int32_t*", temp_u8);
     static var temp_u32 = LuaJitFfi._cast("uint32_t*", temp_u8);
-    static var temp_i64 = LuaJitFfi._cast("int64_t*", temp_u8);
-    static var temp_u64 = LuaJitFfi._cast("uint64_t*", temp_u8);
+    // static var temp_i64 = LuaJitFfi._cast("int64_t*", temp_u8);
+    // static var temp_u64 = LuaJitFfi._cast("uint64_t*", temp_u8);
     static var temp_float = LuaJitFfi._cast("float*", temp_u8);
     static var temp_double = LuaJitFfi._cast("double*", temp_u8);
 
@@ -121,29 +121,29 @@ class ByteData {
         return temp_u32[0];
     }
 
-    inline public function setInt64(i:Int, v:Int) {
-        if (i < 0 || i >= _len - 7) throw new ArgumentException("i", "out of bounds");
-        temp_i64[0] = v;
-        LuaJitFfi.copy(data_u8 + i, temp_i64, 8);
-    }
+    // inline public function setInt64(i:Int, v:Int) {
+    //     if (i < 0 || i >= _len - 7) throw new ArgumentException("i", "out of bounds");
+    //     temp_i64[0] = v;
+    //     LuaJitFfi.copy(data_u8 + i, temp_i64, 8);
+    // }
 
-    inline public function getInt64(i:Int):Int {
-        if (i < 0 || i >= _len - 7) throw new ArgumentException("i", "out of bounds");
-        LuaJitFfi.copy(temp_i64, data_u8 + i, 8);
-        return temp_i64[0];
-    }
+    // inline public function getInt64(i:Int):Int {
+    //     if (i < 0 || i >= _len - 7) throw new ArgumentException("i", "out of bounds");
+    //     LuaJitFfi.copy(temp_i64, data_u8 + i, 8);
+    //     return temp_i64[0];
+    // }
 
-    inline public function setUInt64(i:Int, v:Int) {
-        if (i < 0 || i >= _len - 7) throw new ArgumentException("i", "out of bounds");
-        temp_u64[0] = v;
-        LuaJitFfi.copy(data_u8 + i, temp_u64, 8);
-    }
+    // inline public function setUInt64(i:Int, v:Int) {
+    //     if (i < 0 || i >= _len - 7) throw new ArgumentException("i", "out of bounds");
+    //     temp_u64[0] = v;
+    //     LuaJitFfi.copy(data_u8 + i, temp_u64, 8);
+    // }
 
-    inline public function getUInt64(i:Int):Int {
-        if (i < 0 || i >= _len - 7) throw new ArgumentException("i", "out of bounds");
-        LuaJitFfi.copy(temp_u64, data_u8 + i, 8);
-        return temp_u64[0];
-    }
+    // inline public function getUInt64(i:Int):Int {
+    //     if (i < 0 || i >= _len - 7) throw new ArgumentException("i", "out of bounds");
+    //     LuaJitFfi.copy(temp_u64, data_u8 + i, 8);
+    //     return temp_u64[0];
+    // }
     
     inline public function setFloat(i:Int, v:Float) {
         if (i < 0 || i >= _len - 3) throw new ArgumentException("i", "out of bounds");
@@ -169,6 +169,29 @@ class ByteData {
         return temp_double[0];
     }
     #else
-    #error "ByteData not implemented for current target"
+    inline public function get(i:Int) return data.get(i);
+    inline public function set(i:Int, v:Int) data.set(i, v);
+
+    inline public function getInt8(i:Int):Int; // TODO
+    inline public function setInt8(i:Int, v:Int); // TODO
+    inline public function setInt16(i:Int, v:Int); // TODO
+    inline public function getInt16(i:Int):Int; // TODO
+
+    inline public function setUInt16(i:Int, v:Int) data.setUInt16(i, v);
+    inline public function getUInt16(i:Int) return data.getUInt16(i);
+    inline public function setInt32(i:Int, v:Int) data.setInt32(i, v);
+    inline public function getInt32(i:Int):Int return data.getInt32(i);
+
+    inline public function setUInt32(i:Int, v:Int); // TODO
+    inline public function getUInt32(i:Int):Int; // TODO
+    // inline public function setInt64(i:Int, v:Int); // TODO
+    // inline public function getInt64(i:Int):Int; // TODO
+    // inline public function setUInt64(i:Int, v:Int); // TODO
+    // inline public function getUInt64(i:Int):Int; // TODO
+    
+    inline public function setFloat(i:Int, v:Float) data.setFloat(i, v);
+    inline public function getFloat(i:Int) return data.getFloat(i);
+    inline public function setDouble(i:Int, v:Float) data.setDouble(i, v);
+    inline public function getDouble(i:Int) return data.getDouble(i);
     #end
 }
