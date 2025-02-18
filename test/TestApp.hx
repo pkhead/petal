@@ -9,17 +9,29 @@ class TestApp extends petal.App {
         untyped __lua__("if os.getenv(\"LOCAL_LUA_DEBUGGER_VSCODE\") == \"1\" then require(\"lldebugger\").start() end");
         super();
 
+        // var vertices:Array<Vertex> = [
+        //     vertex(0.0, 0.0),
+        //     vertex(0.0, 100.0),
+        //     vertex(100.0, 0.0),
+
+        //     vertex(100.0, 0.0),
+        //     vertex(0.0, 100.0),
+        //     vertex(100.0, 100.0)
+        // ];
+
         var vertices:Array<Vertex> = [
             vertex(0.0, 0.0),
             vertex(0.0, 100.0),
+            vertex(100.0, 100.0),
             vertex(100.0, 0.0),
-
-            vertex(100.0, 0.0),
-            vertex(0.0, 100.0),
-            vertex(100.0, 100.0)
         ];
 
-        mesh = Mesh.createFromArray(vertices, BufferUsage.Dynamic);
+        var indices:Array<Int> = [0, 1, 2, 2, 3, 0];
+
+        mesh = Mesh.createIndexedFromArray(
+            vertices, indices,
+            UInt16, Triangles, Dynamic
+        );
     }
 
     inline static function vertex(x:Float, y:Float):Vertex {

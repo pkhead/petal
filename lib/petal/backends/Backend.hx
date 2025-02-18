@@ -19,7 +19,7 @@ interface Backend {
     public function gfxFramebufferDispose(fb:InternalFramebuffer):Void;
     public function gfxSetFramebuffer(fb:InternalFramebuffer):Void;
 
-    public function gfxMeshNew(format:Array<VertexAttributeDescription>, vertexCount:Int, indexed:Bool, indexDataType:IndexDataType, usage:BufferUsage):InternalMesh;
+    public function gfxMeshNew(format:Array<VertexAttributeDescription>, vertexCount:Int, indexed:Bool, indexDataType:IndexDataType, mode:DrawMode, usage:BufferUsage):InternalMesh;
     public function gfxMeshDispose(mesh:InternalMesh):Void;
     public function gfxMeshUploadVertices(mesh:InternalMesh, data:ByteData, startVertex:Int, vertexCount:Int):Void;
     public function gfxMeshUploadIndices(mesh:InternalMesh, data:ByteData):Void;

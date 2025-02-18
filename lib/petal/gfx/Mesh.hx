@@ -5,6 +5,9 @@ import haxe.exceptions.ArgumentException;
 import petal.backends.Backend.InternalMesh;
 import petal.util.ByteData;
 
+/**
+ * Describes the role of a vertex attribute.
+ */
 enum AttributeName
 {
     Position;
@@ -27,39 +30,96 @@ enum AttributeName
     TexCoord7;
 }
 
+/**
+ * Describes the primitive data type of each component of a vertex attribute.
+ */
 enum AttributeType {
     Float;
     Byte;
 }
 
+/**
+ * The primitive data type of each index element for a mesh.
+ */
 enum IndexDataType {
     UInt16;
     UInt32;
 }
 
+/**
+ * The expected frequency of mesh data updates. It affects the mesh's memory usage and performance.
+ */
 enum BufferUsage {
+    /**
+     * The mesh will be updated infrequently or not at all.
+     */
     Static;
+
+    /**
+     * The mesh will be updated frequently.
+     */
     Dynamic;
+
+    /**
+     * The mesh will be updated on every frame.
+     */
     Stream;
 }
 
+/**
+ * How the vertex data in a mesh is interpreted when drawing.
+ */
+enum DrawMode {
+    /**
+     * The vertices create unconnected triangles.
+     */
+    Triangles;
+
+    /**
+     * The vertices create a series of triangles that each share two vertices with the last triangle.
+     * 
+     * With V being the vertex list, the first triangle is created with `V[0]`, `V[1]`, and `V[2]`. Afterwards,
+     * each vertex creates a triangle with `V[i-1]`, `V[i-2]`, and `V[i]`, with `i` being the index of the new vertex.
+     */
+    Strip;
+
+    /**
+     * This creates a series of triangles that each share one central vertex.
+     * 
+     * With V being the vertex list, the first triangle is created with `V[0]`, `V[1]`, and `V[2]`. Afterwards,
+     * each vertex creates a triangle with the points `V[0]`, `V[i-1]`, and `V[i-2]`, with `i` being the index
+     * of the new vertex.
+     */
+    Fan;
+}
+
+/**
+ * Description of a vertex attribute. Each attribute has `size` components of type `type`. `name` describes the role of the åttribute.
+ */
 typedef VertexAttributeDescription = {
     name:AttributeName,
     type:AttributeType,
     size:Int
 }
 
+/**
+ * Representation of a standard-format vertex.
+ */
 typedef Vertex = {
     x:Float, y:Float,
     u:Float, v:Float,
     color:Int
 }
 
+/**
+ * Class used for representing polygonal meshes.
+ */
 class Mesh {
     var internal:InternalMesh;
     var _indexType:Null<IndexDataType>;
     var _vtxCount:Int;
     var _vtxFormatSize:Int;
+    var _indicesUploaded = false;
 
     static var stdFormat = [
         {name: Position, type: Float, size: 2},
@@ -67,6 +127,10 @@ class Mesh {
         {name: Color0, type: Byte, size: 4},
     ];
 
+    /**
+     * Calculate the size, in bytes, of each vertex following the given format.
+     * @param format The vertex format description.
+     */
     public static function calcVertexSize(format:Array<VertexAttributeDescription>) {
         var size = 0;
 
@@ -80,9 +144,16 @@ class Mesh {
         return size;
     }
 
-    public function new(format:Array<VertexAttributeDescription>, vertexCount:Int, indexType:Null<IndexDataType>, usage:BufferUsage) {
+    /**
+     * Create an uninitialized mesh with a custom vertex format.
+     * @param format The vertex format to use.
+     * @param vertexCount The number of vertices the mesh will have.
+     * @param indexType The primitive type of each element in the index buffer. Null if the mesh is not indexed.
+     * @param usage The expected frequency of mesh data updates. It affects the mesh's memory usage and performance.
+     */
+    public function new(format:Array<VertexAttributeDescription>, vertexCount:Int, indexType:Null<IndexDataType>, mode:DrawMode, usage:BufferUsage) {
         var backend = @:privateAccess Graphics.instance.backend;
-        internal = backend.gfxMeshNew(format, vertexCount, indexType != null, indexType ?? UInt16, usage);
+        internal = backend.gfxMeshNew(format, vertexCount, indexType != null, indexType ?? UInt16, mode, usage);
 
         _indexType = indexType;
         _vtxCount = vertexCount;
@@ -90,22 +161,47 @@ class Mesh {
     }
 
     /**
-     * Create a new mesh from an array of vertex data.
-     * @param vertices
-     * @param usage
+     * Create a new mesh using the standard vertex format.
+     * @param vertexCount The number of vertices the mesh will have.
+     * @param indexType The primitive type of each element in the index buffer. Null if the mesh is not indexed.
+     * @param usage The expected frequency of mesh data updates. It affects the mesh's memory usage and performance.
      */
-    public static function createFromArray(vertices:Array<Vertex>, usage:BufferUsage) {
-        var mesh = new Mesh(stdFormat, vertices.length, null, usage);
+    public static function createStandard(vertexCount:Int, indexType:Null<IndexDataType>, mode:DrawMode, usage:BufferUsage) {
+        return new Mesh(stdFormat, vertexCount, indexType, mode, usage);
+    }
+
+    /**
+     * Create a new mesh from an array of vertex data.
+     * @param vertices The vertex data the mesh will be initialized with.
+     * @param usage The expected frequency of mesh data updates. It affects the mesh's memory usage and performance.
+     */
+    public static function createFromArray(vertices:Array<Vertex>, mode:DrawMode, usage:BufferUsage) {
+        var mesh = new Mesh(stdFormat, vertices.length, null, mode, usage);
         mesh.uploadVertices(vertices);
+
+        return mesh;
+    }
+
+    /**
+     * Create a new indexed mesh from an array of vertex data and indices.
+     * @param vertices The vertex data the mesh will be initialized with.
+     * @param indices The index data the mesh will be initialized with.
+     * @param indexDataType The primtive type of each element in the index buffer.
+     * @param usage The expected frequency of mesh data updates. It affects the mesh's memory usage and performance.
+     */
+     public static function createIndexedFromArray(vertices:Array<Vertex>, indices:Array<Int>, indexDataType:IndexDataType, mode:DrawMode, usage:BufferUsage) {
+        var mesh = new Mesh(stdFormat, vertices.length, indexDataType, mode, usage);
+        mesh.uploadVertices(vertices);
+        mesh.uploadIndices(indices);
 
         return mesh;
     }
     
     /**
      * Upload the vertex data of the mesh from a ByteData.
-     * @param data 
-     * @param startVertex 
-     * @param vertexCount 
+     * @param data The data to update the mesh with.
+     * @param startVertex The index of the vertex to start from. Defaults to 0.
+     * @param vertexCount The number of vertices to overwrite. Defaults to the number of vertices in the given data.
      */
     public function uploadByteVertices(data:ByteData, startVertex:Int = 0, ?vertexCount:Int) {
         var backend = @:privateAccess Graphics.instance.backend;
@@ -119,9 +215,9 @@ class Mesh {
     }
 
     /**
-     * Upload the vertex data of the mesh from a Vertex array.
-     * @param vertices 
-     * @param startVertex 
+     * Upload the vertex data of the mesh from a vertex array.
+     * @param vertices The data to update the mesh with.
+     * @param startVertex The index of the vertex to start from. Defaults to 0.
      */
     public function uploadVertices(vertices:Array<Vertex>, startVertex:Int = 0) {
         if (_vtxFormatSize != 20) throw new ArgumentException("vertices", "Incompatible vertex formats");
@@ -143,7 +239,7 @@ class Mesh {
 
     /**
      * Upload the index data of the mesh from a ByteData.
-     * @param data 
+     * @param data New index data for the mesh.
      */
     public function uploadByteIndices(data:ByteData) {
         if (_indexType == null) {
@@ -155,8 +251,8 @@ class Mesh {
     }
 
     /**
-     * Upload the index data of the mesh from an Int array.
-     * @param indices 
+     * Upload the index data of the mesh from an int array.
+     * @param indices New index data for the mesh.
      */
     public function uploadIndices(indices:Array<Int>) {
         if (_indexType == null) {
@@ -184,14 +280,19 @@ class Mesh {
                 }
         }
 
-        uploadByteVertices(bytes);
+        uploadByteIndices(bytes);
         bytes.dispose();
+
+        _indicesUploaded = true;
     }
 
     /**
      * Draw the mesh into the active framebuffer.
      */
     public function draw() {
+        if (_indexType != null && !_indicesUploaded)
+            throw new Exception("No index data was uploaded to the Mesh");
+
         var backend = @:privateAccess Graphics.instance.backend;
         backend.gfxMeshDraw(internal);
     }

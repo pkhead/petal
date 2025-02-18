@@ -12,6 +12,13 @@ class Graphics {
         this.backend = backend;
     }
 
+    /**
+     * Clear the background of the active framebuffer with a given color.
+     * @param r The red value of the color, from 0 to 1.
+     * @param g The green value of the color, from 0 to 1.
+     * @param b The value value of the color, from 0 to 1.
+     * @param a The alpha value of the color, from 0 to 1.
+     */
     inline public function clear(r:Float, g:Float, b:Float, a:Float = 1.0) {
         backend.gfxClear(r, g, b, a);
     }

@@ -25,8 +25,7 @@ extern class LuaJitFfi {
 
 typedef MeshImpl = {
     mesh:love.graphics.Mesh,
-    indexType:IndexDataType,
-    vtxSize:Int
+    indexType:IndexDataType
 };
 
 class LoveBackend implements Backend {
@@ -304,7 +303,7 @@ class LoveBackend implements Backend {
         GraphicsModule.setCanvas(fb);
     }
 
-    public function gfxMeshNew(format:Array<VertexAttributeDescription>, vertexCount:Int, indexed:Bool, indexType:IndexDataType, usage:BufferUsage):MeshImpl {
+    public function gfxMeshNew(format:Array<VertexAttributeDescription>, vertexCount:Int, indexed:Bool, indexType:IndexDataType, mode:DrawMode, usage:BufferUsage):MeshImpl {
         var tf:lua.Table<Int, lua.Table<Int, Dynamic>> = lua.Table.create();
         var i = 1;
         var vtxSize = 0;
@@ -346,9 +345,20 @@ class LoveBackend implements Backend {
             tf[i++] = item;
         }
 
+        var loveDrawMode:love.graphics.MeshDrawMode = switch (mode) {
+            case Triangles: Triangles;
+            case Strip: Strip;
+            case Fan: Fan;
+        };
+
+        var loveBufferUsage:love.graphics.SpriteBatchUsage = switch (usage) {
+            case Static: Static;
+            case Dynamic: Dynamic;
+            case Stream: Stream;
+        };
+
         return {
-            mesh: GraphicsModule.newMesh(tf, vertexCount, Triangles, Dynamic),
-            vtxSize: vtxSize,
+            mesh: GraphicsModule.newMesh(tf, vertexCount, loveDrawMode, loveBufferUsage),
             indexType:indexType
         };
     }
