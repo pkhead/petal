@@ -26,7 +26,7 @@ class TestApp extends petal.App {
         return {
             x: x, y: y,
             u:0.0, v:0.0,
-            r:1.0, g:1.0, b:1.0, a:1.0
+            color: 0xFFFFFFFF
         };
     }
 

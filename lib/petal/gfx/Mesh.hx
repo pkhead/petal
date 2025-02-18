@@ -52,7 +52,7 @@ typedef VertexAttributeDescription = {
 typedef Vertex = {
     x:Float, y:Float,
     u:Float, v:Float,
-    r:Float, g:Float, b:Float, a:Float
+    color:Int
 }
 
 class Mesh {
@@ -64,7 +64,7 @@ class Mesh {
     static var stdFormat = [
         {name: Position, type: Float, size: 2},
         {name: TexCoord0, type: Float, size: 2},
-        {name: Color0, type: Float, size: 4},
+        {name: Color0, type: Byte, size: 4},
     ];
 
     public static function calcVertexSize(format:Array<VertexAttributeDescription>) {
@@ -124,20 +124,17 @@ class Mesh {
      * @param startVertex 
      */
     public function uploadVertices(vertices:Array<Vertex>, startVertex:Int = 0) {
-        if (_vtxFormatSize != 32) throw new ArgumentException("vertices", "Incompatible vertex formats");
+        if (_vtxFormatSize != 20) throw new ArgumentException("vertices", "Incompatible vertex formats");
 
-        var bytes = new ByteData(vertices.length * 32);
+        var bytes = new ByteData(vertices.length * 20);
         var offset = 0;
         for (vtx in vertices) {
             bytes.setFloat(offset, vtx.x);
             bytes.setFloat(offset + 4, vtx.y);
             bytes.setFloat(offset + 8, vtx.u);
             bytes.setFloat(offset + 12, vtx.v);
-            bytes.setFloat(offset + 16, vtx.r);
-            bytes.setFloat(offset + 20, vtx.g);
-            bytes.setFloat(offset + 24, vtx.b);
-            bytes.setFloat(offset + 28, vtx.a);
-            offset += 32;
+            bytes.setUInt32(offset + 16, vtx.color);
+            offset += 20;
         }
 
         uploadByteVertices(bytes, startVertex, vertices.length);
