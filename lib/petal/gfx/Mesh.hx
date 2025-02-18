@@ -72,6 +72,9 @@ enum BufferUsage {
 enum MeshDrawMode {
     /**
      * The vertices create unconnected triangles.
+     * 
+     * With V being the vertex list, each triangle will be created with vertices `V[n*3]`, `V[n*3+1]`, and `V[n*3+2]`,
+     * where `n` is the zero-based index of the triangle being created.
      */
     Triangles;
 
@@ -81,7 +84,7 @@ enum MeshDrawMode {
      * With V being the vertex list, the first triangle is created with `V[0]`, `V[1]`, and `V[2]`. Afterwards,
      * each vertex creates a triangle with `V[i-1]`, `V[i-2]`, and `V[i]`, with `i` being the index of the new vertex.
      */
-    Strip;
+    TriangleStrip;
 
     /**
      * This creates a series of triangles that each share one central vertex.
@@ -90,7 +93,33 @@ enum MeshDrawMode {
      * each vertex creates a triangle with the points `V[0]`, `V[i-1]`, and `V[i-2]`, with `i` being the index
      * of the new vertex.
      */
-    Fan;
+    TriangleFan;
+
+    /**
+     * The vertices create unconnected lines with a width of one pixel.
+     * 
+     * With V being the vertex list, each line will be created with vertices `V[n*2]` and `V[n*2+1]`,
+     * where `n` is the zero-based index of the line being created.
+     */
+    Line;
+
+    /**
+     * The vertices create a series of connected lines with each line sharing one vertex with the last line.
+     * 
+     * With V being the vertex list, the first line is created with `V[0]` and `V[1]`. Afterwards,
+     * each vertex creates a line with `V[i-1]` and `V[i]`, with `i` being the index of the new vertex.
+     */
+    LineStrip;
+
+    /**
+     * The vertices create a series of connected lines with each line sharing one vertex with the last line,
+     * and an extra line that connects the last vertex to the first.
+     * 
+     * With V being the vertex list, the first line is created with `V[0]` and `V[1]`. Afterwards,
+     * each vertex creates a line with `V[i-1]` and `V[i]`, with `i` being the index of the new vertex.
+     * An extra line will be created with the `V[V.length - 1]` and `V[0]`.
+     */
+    LineLoop;
 }
 
 /**
@@ -112,12 +141,13 @@ typedef Vertex = {
 }
 
 /**
- * Class used for representing polygonal meshes.
+ * Class used for representing polygonal or line meshes.
  */
 class Mesh {
     var internal:InternalMesh;
     var _indexType:Null<IndexDataType>;
     var _vtxCount:Int;
+    var _idxCount:Int;
     var _vtxFormatSize:Int;
     var _indicesUploaded = false;
 
@@ -157,6 +187,7 @@ class Mesh {
 
         _indexType = indexType;
         _vtxCount = vertexCount;
+        _idxCount = 0;
         _vtxFormatSize = calcVertexSize(format);
     }
 
@@ -222,7 +253,7 @@ class Mesh {
     public function uploadVertices(vertices:Array<Vertex>, startVertex:Int = 0) {
         if (_vtxFormatSize != 20) throw new ArgumentException("vertices", "Incompatible vertex formats");
 
-        var bytes = new ByteData(vertices.length * 20);
+        var bytes = ByteData.loveAlloc(vertices.length * 20);
         var offset = 0;
         for (vtx in vertices) {
             bytes.setFloat(offset, vtx.x);
@@ -246,6 +277,13 @@ class Mesh {
             throw new Exception("Attempt to upload indices of non-indexed Mesh");
         }
 
+        var elemSize = switch (_indexType) {
+            case UInt16: 2;
+            case UInt32: 4;
+        }
+
+        _idxCount = Std.int(data.length / elemSize);
+
         var backend = @:privateAccess Graphics.instance.backend;
         backend.gfxMeshUploadIndices(internal, data);
     }
@@ -264,7 +302,7 @@ class Mesh {
 
         switch (_indexType) {
             case UInt16:
-                bytes = new ByteData(indices.length * 2);
+                bytes = ByteData.loveAlloc(indices.length * 2);
 
                 for (v in indices) {
                     bytes.setUInt16(offset, v);
@@ -272,7 +310,7 @@ class Mesh {
                 }
 
             case UInt32:
-                bytes = new ByteData(indices.length * 4);
+                bytes = ByteData.loveAlloc(indices.length * 4);
 
                 for (v in indices) {
                     bytes.setUInt32(offset, v);
@@ -294,7 +332,27 @@ class Mesh {
             throw new Exception("No index data was uploaded to the Mesh");
 
         var backend = @:privateAccess Graphics.instance.backend;
-        backend.gfxMeshDraw(internal);
+        var count = _indexType != null ? _idxCount : _vtxCount;
+
+        backend.gfxMeshDraw(internal, 0, count);
+    }
+
+    /**
+     * Draw a range of vertices of the mesh into the active framebuffer.
+     * For an indexed mesh, the given range is for the index list,
+     * and for an non-indexed mesh, the given range is for the vertex list.
+     * @param start The index to start drawing from.
+     * @param count The number of elements to draw.
+     */
+     public function drawRange(start:Int, count:Int) {
+        if (_indexType != null && !_indicesUploaded)
+            throw new Exception("No index data was uploaded to the Mesh");
+
+        var backend = @:privateAccess Graphics.instance.backend;
+        var maxCount = _indexType != null ? _idxCount : _vtxCount;
+
+        if (start < 0 || start + count > maxCount) throw new Exception("Out of range");
+        backend.gfxMeshDraw(internal, start, count);
     }
 
     /**

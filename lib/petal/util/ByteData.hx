@@ -1,5 +1,6 @@
 package petal.util;
 
+import haxe.Exception;
 import haxe.exceptions.ArgumentException;
 import love.data.DataModule;
 #if love
@@ -25,30 +26,77 @@ class ByteData {
     var _len:Int;
     
     inline function get_length() { return _len; }
-    public var loveData(default, null):love.data.ByteData;
 
+    /**
+     * The love.data.ByteData the instance is wrapping over, if it was created
+     * with `fromLoveByteData` or `loveAlloc`. Otherwise, it is null.
+     */
+    public var loveData(default, null):Null<love.Data>;
+
+    /**
+     * Immediately dispose the underlying data. This is only useful for
+     * if it was created with `loveAlloc`.
+     */
     public function dispose() {
-        if (loveData == null) return;
+        if (data_u8 == null) return;
 
-        loveData.release();
-        loveData = null;
+        if (loveData != null) {
+            loveData.release();
+            loveData = null;
+        }
+
         data_u8 = null;
         _len = 0;
+    }
+
+    function new(loveData:Null<love.Data>, u8_ptr:Dynamic, size:Int) {
+        this.loveData = loveData;
+        this.data_u8 = u8_ptr;
+        _len = size;
+        //data_u8 = LuaJitFfi._cast("uint8_t*", loveData.getFFIPointer());
+    }
+
+    /**
+     * Create a new ByteData using the data from a pre-existing love.data.ByteData.
+     * @param loveData The preallocated LOVE ByteData.
+     */
+    public static function fromLoveData(loveData:love.Data) {
+        var ptr = LuaJitFfi._cast("uint8_t*", loveData.getFFIPointer());
+        return new ByteData(loveData, ptr, Std.int(loveData.getSize()));
+    }
+
+    /**
+     * Create a new ByteData ƒrom a pointer.
+     * @param ptr Pointer to the first data element.
+     * @param size Size of the data, in bytes.
+     */
+    public static function fromPointer(ptr:Dynamic, size:Int) {
+        return new ByteData(null, ptr, size);
+    }
+
+    /**
+     * Allocate a new ByteData using love.data.newByteData.
+     * The ByteData can then be used with LOVE's API.
+     * 
+     * The love.data.ByteData will be owned by this class. When `dispose` is called,
+     * it will be released.
+     * @param size The size of the ByteData in bytes.
+     */
+    public static function loveAlloc(size:Int) {
+        var loveData = DataModule.newByteData(size);
+        return new ByteData(loveData, LuaJitFfi._cast("uint8_t*", loveData.getFFIPointer()), size);
+    }
+
+    /**
+     * Allocate a new ByteData.
+     * @param size The size of the ByteData in bytes.
+     */
+    public static function alloc(size:Int) {
+        return new ByteData(null, LuaJitFfi._new("uint8_t[?}", size), size);
     }
     #else
     var data:haxe.io.Bytes;
     #end
-
-    public function new(size:Int) {
-        #if love
-        _len = size;
-
-        loveData = DataModule.newByteData(size);
-        data_u8 = LuaJitFfi._cast("uint8_t*", loveData.getFFIPointer());
-        #else
-        data = haxe.io.Bytes.alloc(size);
-        #end
-    }
 
     #if love
     inline public function get(i:Int):Int {
@@ -168,6 +216,12 @@ class ByteData {
         LuaJitFfi.copy(temp_double, data_u8 + i, 8);
         return temp_double[0];
     }
+
+    public function blit(pos:Int, src:ByteData, srcpos:Int, len:Int) {
+        if (pos < 0 || pos + len > _len) throw new Exception("destination out of bounds");
+        if (srcpos < 0 || srcpos + len > src._len) throw new Exception("source out of bounds");
+        LuaJitFfi.copy(data_u8 + pos, src.data_u8 + srcpos, len);
+    }
     #else
     inline public function get(i:Int) return data.get(i);
     inline public function set(i:Int, v:Int) data.set(i, v);
@@ -193,5 +247,9 @@ class ByteData {
     inline public function getFloat(i:Int) return data.getFloat(i);
     inline public function setDouble(i:Int, v:Float) data.setDouble(i, v);
     inline public function getDouble(i:Int) return data.getDouble(i);
+
+    inline public function blit(pos:Int, src:ByteData, srcpos:Int, len:Int) {
+        return data.blit(pos, src.data, srcpos, len);
+    }
     #end
 }

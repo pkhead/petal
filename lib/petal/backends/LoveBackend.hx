@@ -1,6 +1,9 @@
 package petal.backends;
+
+import haxe.exceptions.ArgumentException;
 import petal.util.ByteData;
 import petal.gfx.Mesh;
+import petal.gfx.Texture;
 import petal.backends.Backend;
 import love.keyboard.KeyConstant;
 import love.keyboard.Scancode;
@@ -30,6 +33,7 @@ typedef MeshImpl = {
 
 class LoveBackend implements Backend {
     var keyMap:Map<KeyConstant, KeyCode> = [];
+    var quad:love.graphics.Quad;
 
     public function new() {
         // first, list key mappings as an array of pairs
@@ -179,6 +183,7 @@ class LoveBackend implements Backend {
     @:access(petal.App)
     public function initApp(app:App) {
         var canvas = GraphicsModule.newCanvas();
+        quad = GraphicsModule.newQuad(0.0, 0.0, 0.0, 0.0, 1.0, 1.0);
         GraphicsModule.setLineStyle(Rough);
         GraphicsModule.setLineJoin(None);
 
@@ -304,6 +309,14 @@ class LoveBackend implements Backend {
     }
 
     public function gfxMeshNew(format:Array<VertexAttributeDescription>, vertexCount:Int, indexed:Bool, indexType:IndexDataType, mode:MeshDrawMode, usage:BufferUsage):MeshImpl {
+        var loveDrawMode:love.graphics.MeshDrawMode = switch (mode) {
+            case Triangles: Triangles;
+            case TriangleStrip: Strip;
+            case TriangleFan: Fan;
+
+            default: throw new ArgumentException("mode", '$mode MeshDrawMode is not supported on love target');
+        };
+
         var tf:lua.Table<Int, lua.Table<Int, Dynamic>> = lua.Table.create();
         var i = 1;
         var vtxSize = 0;
@@ -345,12 +358,6 @@ class LoveBackend implements Backend {
             tf[i++] = item;
         }
 
-        var loveDrawMode:love.graphics.MeshDrawMode = switch (mode) {
-            case Triangles: Triangles;
-            case Strip: Strip;
-            case Fan: Fan;
-        };
-
         var loveBufferUsage:love.graphics.SpriteBatchUsage = switch (usage) {
             case Static: Static;
             case Dynamic: Dynamic;
@@ -385,8 +392,78 @@ class LoveBackend implements Backend {
         meshImpl.mesh.setVertexMap(data.loveData, type);
     }
 
-    public function gfxMeshDraw(mesh:InternalMesh):Void {
+    public function gfxMeshDraw(mesh:InternalMesh, start:Int, count:Int):Void {
         var meshImpl = (mesh : MeshImpl);
+        meshImpl.mesh.setDrawRange(start + 1, count);
         GraphicsModule.draw(meshImpl.mesh, 0, 0);
+    }
+
+    public function gfxTextureNew(image:Image):InternalTexture {
+        return GraphicsModule.newImage(image.loveImage);
+    }
+
+    public function gfxTextureDispose(tex:InternalTexture):Void {
+        var loveImg:love.graphics.Image = cast tex;
+        loveImg.release();
+    }
+
+    inline static function getLoveWrapMode(m:TextureWrapMode) {
+        return switch (m) {
+            case Repeat: love.graphics.WrapMode.Repeat;
+            case Clamp: love.graphics.WrapMode.Clamp;
+        }
+    }
+
+    inline static function getLoveFilterMode(m:TextureFilterMode) {
+        return switch (m) {
+            case Linear: love.graphics.FilterMode.Linear;
+            case Nearest: love.graphics.FilterMode.Nearest;
+        }
+    }
+
+    public function gfxTextureSetWrap(tex:InternalTexture, u:TextureWrapMode, v:TextureWrapMode) {
+        var loveImg:love.graphics.Image = cast tex;
+        loveImg.setWrap(getLoveWrapMode(u), getLoveWrapMode(v));
+    }
+
+    public function gfxTextureSetFilter(tex:InternalTexture, u:TextureFilterMode, v:TextureFilterMode) {
+        var loveImg:love.graphics.Image = cast tex;
+        loveImg.setFilter(getLoveFilterMode(u), getLoveFilterMode(v));
+    }
+
+    public function gfxTextureDraw(tex:InternalTexture) {
+        var loveImg:love.graphics.Texture = cast tex;
+        GraphicsModule.draw(loveImg, 0, 0);
+    }
+
+    public function gfxTextureDrawQuad(tex:InternalTexture, x:Float, y:Float, w:Float, h:Float, refW:Float, refH:Float) {
+        var loveImg:love.graphics.Texture = cast tex;
+
+        quad.setViewport(x, y, w, h, refW, refH);
+        GraphicsModule.draw(loveImg, quad, 0, 0);
+    }
+
+    public function gfxImMatrixIdentity() {
+        GraphicsModule.origin();
+    }
+
+    public function gfxImTranslate(x:Float, y:Float) {
+        GraphicsModule.translate(x, y);
+    }
+
+    public function gfxImScale(x:Float, y:Float) {
+        GraphicsModule.scale(x, y);
+    }
+
+    public function gfxImRotate(ang:Float) {
+        GraphicsModule.rotate(ang);
+    }
+
+    public function gfxImPushMatrix() {
+        GraphicsModule.push(Transform);
+    }
+
+    public function gfxImPopMatrix() {
+        GraphicsModule.pop();
     }
 }

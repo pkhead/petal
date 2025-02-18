@@ -60,4 +60,28 @@ class Graphics {
 
         backend.gfxImEnd();
     }
+
+    inline public function origin() {
+        backend.gfxImMatrixIdentity();
+    }
+
+    inline public function push() {
+        backend.gfxImPushMatrix();
+    }
+
+    inline public function pop() {
+        backend.gfxImPopMatrix();
+    }
+
+    inline public function translate(x:Float, y:Float) {
+        backend.gfxImTranslate(x, y);
+    }
+
+    inline public function scale(x:Float, y:Float) {
+        backend.gfxImScale(x, y);
+    }
+
+    inline public function rotate(ang:Float) {
+        backend.gfxImRotate(ang);
+    }
 }
