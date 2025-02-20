@@ -15,6 +15,9 @@ typedef InternalTexture = Any;
 interface Backend {
     public function initApp(app:App):Void;
 
+    public function getWindowWidth():Int;
+    public function getWindowHeight():Int;
+
     public function gfxClear(r:Float, g:Float, b:Float, a:Float):Void;
 
     public function gfxTextureNew(image:Image):InternalTexture;

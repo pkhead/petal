@@ -1,5 +1,6 @@
-package petal.backends;
+package petal.backends.love;
 
+import love.filesystem.FileMode;
 import haxe.exceptions.ArgumentException;
 import petal.util.ByteData;
 import petal.gfx.Mesh;
@@ -11,20 +12,6 @@ import love.keyboard.Scancode;
 import love.Love;
 import love.graphics.GraphicsModule;
 import love.mouse.MouseModule;
-
-@:luaRequire("ffi")
-extern class LuaJitFfi {
-    @:native("new")
-    public static function _new(ctype:String, args:haxe.extern.Rest<Dynamic>):Dynamic;
-
-    @:native("cast")
-    public static function _cast(ct:String, init:Dynamic):Dynamic;
-
-    public static function abi(param:String):Bool;
-
-    @:overload(function(dst:Dynamic, str:Dynamic):Void {})
-    public static function copy(dst:Dynamic, src:Dynamic, len:Int):Void;
-}
 
 typedef MeshImpl = {
     mesh:love.graphics.Mesh,
@@ -182,6 +169,8 @@ class LoveBackend implements Backend {
 
     @:access(petal.App)
     public function initApp(app:App) {
+        NativeFs.mount(NativeFs.getWorkingDirectory() + "/res", "/");
+
         var canvas = GraphicsModule.newCanvas();
         quad = GraphicsModule.newQuad(0.0, 0.0, 0.0, 0.0, 1.0, 1.0);
         GraphicsModule.setLineStyle(Rough);
@@ -229,6 +218,14 @@ class LoveBackend implements Backend {
         Love.draw = () -> {
             GraphicsModule.draw(canvas, 0.0, 0.0);
         }
+    }
+
+    public function getWindowWidth() {
+        return Std.int(GraphicsModule.getWidth());
+    }
+
+    public function getWindowHeight() {
+        return Std.int(GraphicsModule.getHeight());
     }
 
     public function gfxClear(r:Float, g:Float, b:Float, a:Float) {

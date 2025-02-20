@@ -151,6 +151,15 @@ class Mesh {
     var _vtxFormatSize:Int;
     var _indicesUploaded = false;
 
+    public var texture(default, set):Null<Texture> = null;
+
+    #if love
+    function set_texture(newTex:Null<Texture>) {
+        untyped(internal.mesh).setTexture(@:privateAccess newTex?.internal);
+        return texture = newTex;
+    }
+    #end
+
     static var stdFormat = [
         {name: Position, type: Float, size: 2},
         {name: TexCoord0, type: Float, size: 2},

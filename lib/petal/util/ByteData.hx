@@ -4,7 +4,7 @@ import haxe.Exception;
 import haxe.exceptions.ArgumentException;
 import love.data.DataModule;
 #if love
-import petal.backends.LoveBackend.LuaJitFfi;
+import petal.backends.love.LuaJitFfi;
 #end
 
 class ByteData {

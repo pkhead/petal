@@ -1,6 +1,0 @@
--lib love
--cp lib
--cp test
--D lua-vanilla
---main TestApp
---lua out/main.lua
