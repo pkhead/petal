@@ -1,4 +1,5 @@
 {
     "main": "TestApp",
-    "classPaths": ["src"]
+    "classPaths": ["src"],
+    "shaderPaths": ["shaders"]
 }

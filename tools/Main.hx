@@ -6,50 +6,37 @@ import sys.io.File;
 import haxe.Json;
 
 class Main {
-    static var directorySeparator = Sys.systemName() == "Windows" ? "\r\n" : "\n";
+    static var programArgs = Sys.args();
+
+    static function showHelp() {
+        Sys.println("help - show this help page");
+        Sys.println("generate - generate project files");
+        Sys.println("bulid - generate and build the project files");
+    }
 
     static function main() {
-        var projectDir = Sys.args()[0];
-        var data = Json.parse(File.getContent(Path.join([projectDir, "petal.json"])));
-        trace(data);
-        
-        var buildDir = Path.join([projectDir, "build"]);
-        var outDir = Path.join([projectDir, "out"]);
-
-        if (!FileSystem.exists(buildDir))
-            FileSystem.createDirectory(buildDir);
-
-        if (!FileSystem.exists(outDir))
-            FileSystem.createDirectory(outDir);
-
-        {
-            var destFile = File.write(Path.join([outDir, "nativefs.lua"]), false);
-            var srcFile = File.read("targets/love/nativefs.lua", false);
-
-            while (!srcFile.eof()) {
-                destFile.writeString(srcFile.readLine());
-                destFile.writeString(directorySeparator);
-            }
-            
-            destFile.close();
-            srcFile.close();
+        if (programArgs.length == 1) {
+            showHelp();
+            return;
         }
 
-        var outHxml = File.write(Path.join([buildDir, "compile.hxml"]), false);
+        var projectDir = programArgs[programArgs.length - 1];
+        var subcommand = programArgs[0];
+        switch (subcommand) {
+            case "generate":
+                var proj = new Project(projectDir);
+                proj.generateLove2d();
 
-        var args:Array<String> = [];
-        args.push("-lib love");
-        args.push("-lib petal");
+            case "build":
+                var proj = new Project(projectDir);
+                proj.generateLove2d();
+                Sys.command("haxe", [projectDir + "/build/compile.hxml"]);
 
-        for (cp in (data.classPaths : Array<String>)) {
-            args.push("-cp " + Path.join([projectDir, cp]));
+            case "help":
+                showHelp();
+
+            default:
+                Sys.println("unknown command: " + subcommand);
         }
-
-        args.push('--main ${data.main}');
-
-        args.push('--lua ${Path.join([outDir, "main.lua"])}');
-
-        outHxml.writeString(args.join(directorySeparator), haxe.io.Encoding.UTF8);
-        outHxml.close();
     }
 }
