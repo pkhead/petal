@@ -1,0 +1,12 @@
+namespace testNamespace {
+    @no_guard
+    module testModule {
+
+    }
+
+    namespace otherNamespace {
+        vertex test_vs {
+
+        }
+    }
+}

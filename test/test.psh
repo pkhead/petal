@@ -1,0 +1,47 @@
+Word1 Word2 Test!!    jjj
+
+// psh - Petal SHader
+
+// namespace test_namespace;
+// or namespace test_namespace {}
+
+@no_guard // this will remove the include guard in the preprocessed output
+module test_module {
+    // modules can define ins, outs, uniforms, varyings
+    // any functions defined in the module can be used by other modules
+    // that include it.
+    
+    // how to include a module:
+    // $include path.to.module
+}
+
+vertex basic_vs {
+    // $in vec2 pos : position;
+    // $in vec2 tex : texcoord0;
+    $in vec2 a_position;
+    $in vec2 a_texcoord0;
+    $in vec4 a_color0;
+
+    $uniform matrix4 u_transform;
+    $varying vec4 v_color;
+    $varying vec4 v_texcoord;
+
+    vec4 main() {
+        v_color = a_color0;
+        v_texcoord = a_texcoord0;
+
+        return u_transform * vec4(a_position, 0.0, 0.0); 
+    }
+}
+
+fragment basic_fs {
+    $varying vec4 v_color;
+    $varying vec4 v_texcoord;
+
+    $uniform matrix4 u_color0;
+    $uniform texture2D u_texture0;
+
+    vec4 main() {
+        return texture(u_texture0, v_texcoord) * v_color * u_color0;
+    }
+}
